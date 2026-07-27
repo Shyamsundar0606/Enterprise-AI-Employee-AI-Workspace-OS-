@@ -4,10 +4,11 @@ import uuid
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, WebSocket
 from fastapi.responses import JSONResponse
 
 from app.api.router import api_router
+from app.api.routes.chat import chat_websocket_handler
 from app.config.settings import get_settings
 from app.database.redis import close_redis_client
 from app.database.session import engine, init_db
@@ -33,6 +34,11 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
 app = FastAPI(title=settings.app_name, version="0.1.0", lifespan=lifespan)
 app.include_router(api_router, prefix=settings.api_v1_prefix)
+
+
+@app.websocket("/ws/chat")
+async def chat_websocket(websocket: WebSocket) -> None:
+    await chat_websocket_handler(websocket)
 
 
 @app.middleware("http")

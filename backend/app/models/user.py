@@ -8,6 +8,9 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database.base import Base
 
+if False:  # pragma: no cover - typing only
+    from app.models.conversation import Conversation
+
 
 class UserRole(str, Enum):
     USER = "user"
@@ -30,6 +33,10 @@ class User(Base):
     )
 
     refresh_tokens: Mapped[list["RefreshToken"]] = relationship(
+        back_populates="user",
+        cascade="all, delete-orphan",
+    )
+    conversations: Mapped[list["Conversation"]] = relationship(
         back_populates="user",
         cascade="all, delete-orphan",
     )

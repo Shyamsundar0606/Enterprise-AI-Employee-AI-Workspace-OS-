@@ -34,4 +34,5 @@ enterprise_ai_employee_backend.egg-info/dependency_links.txt
 enterprise_ai_employee_backend.egg-info/requires.txt
 enterprise_ai_employee_backend.egg-info/top_level.txt
 tests/test_auth.py
+tests/test_chat.py
 tests/test_health.py
