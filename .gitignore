@@ -1,14 +1,52 @@
+# ==========================
+# Environment
+# ==========================
 .env
 .env.*
 !.env.example
+
+# ==========================
+# Python
+# ==========================
 __pycache__/
 *.py[cod]
+*.egg-info/
 .pytest_cache/
 .ruff_cache/
+.coverage
+htmlcov/
+
+# Virtual Environment
 .venv/
+venv/
+env/
+
+backend/Lib/
+backend/Scripts/
+backend/Include/
+backend/share/
+backend/pyvenv.cfg
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# ==========================
+# Node
+# ==========================
 node_modules/
 .next/
 out/
-.idea/
+
+# ==========================
+# IDE
+# ==========================
 .vscode/
+.idea/
+
+# ==========================
+# OS
+# ==========================
 .DS_Store
+Thumbs.db
