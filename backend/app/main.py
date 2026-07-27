@@ -10,7 +10,7 @@ from fastapi.responses import JSONResponse
 from app.api.router import api_router
 from app.config.settings import get_settings
 from app.database.redis import close_redis_client
-from app.database.session import engine
+from app.database.session import engine, init_db
 from app.utils.logging import configure_logging
 
 settings = get_settings()
@@ -21,6 +21,7 @@ logger = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     app.state.db_engine = engine
+    await init_db()
     logger.info("Application startup complete")
     try:
         yield
