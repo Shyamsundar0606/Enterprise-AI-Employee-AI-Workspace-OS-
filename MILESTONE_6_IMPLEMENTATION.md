@@ -15,7 +15,7 @@ Verify Authentication & Get User ID
     ↓
 MemoryService.get_or_create_conversation()
     ↓
-MemoryService.get_recent_messages() 
+MemoryService.get_recent_messages()
     ├─ Try Redis cache first
     └─ Fall back to PostgreSQL
     ↓
