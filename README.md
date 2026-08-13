@@ -52,3 +52,9 @@ docs/      Architecture documentation
 ```
 
 Run `pre-commit install` once after installing backend development dependencies. Every change should pass `make lint` and `make test` before commit.
+
+## Contact
+
+Shyamsundar Sasikumar<br>
+shyamsundar.sasikumar@gmail.com<br>
++33745604671
