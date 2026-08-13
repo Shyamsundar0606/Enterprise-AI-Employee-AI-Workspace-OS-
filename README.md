@@ -15,6 +15,17 @@ Enterprise AI Employee is a modular workspace operating system for enterprise AI
 3. Start: `docker compose up --build`
 4. Open `http://localhost:3000`; API docs are at `http://localhost:8000/docs`.
 
+## LLM provider layer
+
+The backend now exposes a provider-agnostic LLM interface under `/api/v1/llm/*`.
+
+- `GET /api/v1/llm/health`
+- `GET /api/v1/llm/models`
+- `POST /api/v1/llm/chat`
+- `POST /api/v1/llm/stream`
+
+Use `LLM_PROVIDER=OLLAMA`, `OLLAMA_URL=http://host.docker.internal:11434`, and `DEFAULT_MODEL=qwen3` for the first working provider.
+
 ## Commands
 
 ```bash

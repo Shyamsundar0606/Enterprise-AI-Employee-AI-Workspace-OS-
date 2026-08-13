@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import bcrypt
@@ -31,7 +31,7 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 
 
 def create_access_token(user: User) -> str:
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     payload = {
         "sub": str(user.id),
         "email": user.email,
@@ -45,7 +45,7 @@ def create_access_token(user: User) -> str:
 
 
 def create_refresh_token(user: User) -> str:
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     payload = {
         "sub": str(user.id),
         "email": user.email,
@@ -67,9 +67,13 @@ def decode_token(token: str) -> dict[str, Any]:
             options={"require": ["sub", "exp"]},
         )
     except jwt.ExpiredSignatureError as exc:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token expired") from exc
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Token expired"
+        ) from exc
     except jwt.InvalidTokenError as exc:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token") from exc
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token"
+        ) from exc
 
 
 def hash_token(token: str) -> str:
@@ -89,17 +93,15 @@ async def get_user_by_id(session: AsyncSession, user_id: int) -> User | None:
 async def create_user(session: AsyncSession, payload: UserCreate) -> User:
     existing = await get_user_by_email(session, payload.email)
     if existing is not None:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email already registered")
-
-    normalized_role = payload.role.lower()
-    if normalized_role not in {UserRole.USER.value, UserRole.ADMIN.value}:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid role")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Email already registered"
+        )
 
     user = User(
         email=payload.email.lower(),
         username=payload.username,
         hashed_password=get_password_hash(payload.password),
-        role=normalized_role,
+        role=UserRole.USER.value,
     )
     session.add(user)
     await session.flush()
@@ -116,7 +118,7 @@ async def authenticate_user(session: AsyncSession, email: str, password: str) ->
 
 
 async def store_refresh_token(session: AsyncSession, user: User, token: str) -> RefreshToken:
-    expires_at = datetime.now(timezone.utc) + timedelta(days=settings.jwt_refresh_token_expire_days)
+    expires_at = datetime.now(UTC) + timedelta(days=settings.jwt_refresh_token_expire_days)
     refresh_token = RefreshToken(
         token_hash=hash_token(token),
         user_id=user.id,
@@ -127,12 +129,16 @@ async def store_refresh_token(session: AsyncSession, user: User, token: str) -> 
     return refresh_token
 
 
-async def revoke_refresh_token(session: AsyncSession, token_hash: str, replaced_by_token_hash: str | None = None) -> None:
-    result = await session.execute(select(RefreshToken).where(RefreshToken.token_hash == token_hash))
+async def revoke_refresh_token(
+    session: AsyncSession, token_hash: str, replaced_by_token_hash: str | None = None
+) -> None:
+    result = await session.execute(
+        select(RefreshToken).where(RefreshToken.token_hash == token_hash)
+    )
     token_record = result.scalar_one_or_none()
     if token_record is None:
         return
-    token_record.revoked_at = datetime.now(timezone.utc)
+    token_record.revoked_at = datetime.now(UTC)
     token_record.replaced_by_token_hash = replaced_by_token_hash
 
 
@@ -142,12 +148,18 @@ async def rotate_refresh_token(session: AsyncSession, token: str) -> tuple[str, 
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token type")
 
     token_hash = hash_token(token)
-    result = await session.execute(select(RefreshToken).where(RefreshToken.token_hash == token_hash))
+    result = await session.execute(
+        select(RefreshToken).where(RefreshToken.token_hash == token_hash)
+    )
     token_record = result.scalar_one_or_none()
     if token_record is None or token_record.revoked_at is not None:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Refresh token is invalid")
-    if token_record.expires_at.replace(tzinfo=timezone.utc) < datetime.now(timezone.utc):
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Refresh token expired")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Refresh token is invalid"
+        )
+    if token_record.expires_at.replace(tzinfo=UTC) < datetime.now(UTC):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Refresh token expired"
+        )
 
     user = await get_user_by_id(session, int(payload["sub"]))
     if user is None:
@@ -155,11 +167,19 @@ async def rotate_refresh_token(session: AsyncSession, token: str) -> tuple[str, 
 
     new_access_token = create_access_token(user)
     new_refresh_token = create_refresh_token(user)
-    await revoke_refresh_token(session, token_hash, replaced_by_token_hash=hash_token(new_refresh_token))
+    await revoke_refresh_token(
+        session, token_hash, replaced_by_token_hash=hash_token(new_refresh_token)
+    )
     await store_refresh_token(session, user, new_refresh_token)
 
     return new_access_token, new_refresh_token
 
 
 def user_to_out(user: User) -> UserOut:
-    return UserOut(id=user.id, email=user.email, username=user.username, role=user.role, is_active=user.is_active)
+    return UserOut(
+        id=user.id,
+        email=user.email,
+        username=user.username,
+        role=user.role,
+        is_active=user.is_active,
+    )

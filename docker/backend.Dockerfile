@@ -1,11 +1,10 @@
 FROM python:3.12-slim
 
-ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 PIP_NO_CACHE_DIR=1
+ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 PIP_NO_CACHE_DIR=1 PYTHONPATH=/app
 WORKDIR /app
 RUN addgroup --system app && adduser --system --ingroup app app
-COPY pyproject.toml ./
-RUN pip install --upgrade pip && pip install .
 COPY . .
+RUN pip install --upgrade pip && pip install .[dev]
 RUN chown -R app:app /app
 USER app
 EXPOSE 8000

@@ -27,6 +27,13 @@ services:
       context: ./backend
       dockerfile: ../docker/backend.Dockerfile
     env_file: .env
+    environment:
+      LLM_PROVIDER: ${LLM_PROVIDER:-OLLAMA}
+      OLLAMA_URL: ${OLLAMA_URL:-http://host.docker.internal:11434}
+      DEFAULT_MODEL: ${DEFAULT_MODEL:-qwen3}
+      TEMPERATURE: ${TEMPERATURE:-0.7}
+      MAX_TOKENS: ${MAX_TOKENS:-512}
+      REQUEST_TIMEOUT: ${REQUEST_TIMEOUT:-30.0}
     depends_on:
       postgres: {condition: service_healthy}
       redis: {condition: service_healthy}

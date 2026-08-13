@@ -7,7 +7,6 @@ from app.database.base import Base
 
 
 def _build_engine() -> object:
-    from sqlalchemy.ext.asyncio import AsyncEngine
 
     return create_async_engine(str(get_settings().database_url), pool_pre_ping=True)
 

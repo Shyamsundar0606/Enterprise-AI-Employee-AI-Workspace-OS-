@@ -3,10 +3,19 @@ from __future__ import annotations
 import logging
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Query, WebSocket, WebSocketDisconnect, WebSocketException, status
+from fastapi import (
+    APIRouter,
+    Depends,
+    Query,
+    WebSocket,
+    WebSocketDisconnect,
+    WebSocketException,
+    status,
+)
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import get_current_user
+from app.database.session import get_db_session
 from app.models.user import User
 from app.schemas.chat import (
     ConversationCreate,
@@ -25,24 +34,18 @@ router = APIRouter(tags=["chat"])
 logger = logging.getLogger(__name__)
 
 
-async def ensure_chat_tables() -> None:
-    from app.database.session import init_db
-
-    await init_db()
-
-
-@router.post("/chat/conversations", status_code=status.HTTP_201_CREATED, response_model=ConversationOut)
+@router.post(
+    "/chat/conversations", status_code=status.HTTP_201_CREATED, response_model=ConversationOut
+)
 async def create_conversation(
     payload: ConversationCreate,
     current_user: Annotated[User, Depends(get_current_user)],
+    session: Annotated[AsyncSession, Depends(get_db_session)],
 ) -> ConversationOut:
-    await ensure_chat_tables()
-    from app.database.session import AsyncSessionFactory
-
-    async with AsyncSessionFactory() as session:
-        service = ChatService(session)
-        conversation = await service.create_conversation(user_id=current_user.id, title=payload.title)
-        return ConversationOut.model_validate(conversation)
+    conversation = await ChatService(session).create_conversation(
+        user_id=current_user.id, title=payload.title
+    )
+    return ConversationOut.model_validate(conversation)
 
 
 @router.get("/chat/conversations", response_model=ConversationListResponse)
@@ -50,33 +53,29 @@ async def list_conversations(
     current_user: Annotated[User, Depends(get_current_user)],
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
+    session: AsyncSession = Depends(get_db_session),
 ) -> ConversationListResponse:
-    await ensure_chat_tables()
-    from app.database.session import AsyncSessionFactory
-
-    async with AsyncSessionFactory() as session:
-        service = ChatService(session)
-        conversations, total = await service.list_conversations(user_id=current_user.id, page=page, page_size=page_size)
-        return ConversationListResponse(
-            items=[ConversationOut.model_validate(conversation) for conversation in conversations],
-            total=total,
-            page=page,
-            page_size=page_size,
-        )
+    conversations, total = await ChatService(session).list_conversations(
+        user_id=current_user.id, page=page, page_size=page_size
+    )
+    return ConversationListResponse(
+        items=[ConversationOut.model_validate(item) for item in conversations],
+        total=total,
+        page=page,
+        page_size=page_size,
+    )
 
 
 @router.get("/chat/conversations/{conversation_id}", response_model=ConversationOut)
 async def get_conversation(
     conversation_id: str,
     current_user: Annotated[User, Depends(get_current_user)],
+    session: AsyncSession = Depends(get_db_session),
 ) -> ConversationOut:
-    await ensure_chat_tables()
-    from app.database.session import AsyncSessionFactory
-
-    async with AsyncSessionFactory() as session:
-        service = ChatService(session)
-        conversation = await service.get_conversation(conversation_id=conversation_id, user_id=current_user.id)
-        return ConversationOut.model_validate(conversation)
+    conversation = await ChatService(session).get_conversation(
+        conversation_id=conversation_id, user_id=current_user.id
+    )
+    return ConversationOut.model_validate(conversation)
 
 
 @router.patch("/chat/conversations/{conversation_id}", response_model=ConversationOut)
@@ -84,63 +83,53 @@ async def update_conversation(
     conversation_id: str,
     payload: ConversationUpdate,
     current_user: Annotated[User, Depends(get_current_user)],
+    session: AsyncSession = Depends(get_db_session),
 ) -> ConversationOut:
-    await ensure_chat_tables()
-    from app.database.session import AsyncSessionFactory
-
-    async with AsyncSessionFactory() as session:
-        service = ChatService(session)
-        conversation = await service.update_conversation(
-            conversation_id=conversation_id,
-            user_id=current_user.id,
-            fields=payload.model_dump(exclude_unset=True),
-        )
-        return ConversationOut.model_validate(conversation)
+    conversation = await ChatService(session).update_conversation(
+        conversation_id=conversation_id,
+        user_id=current_user.id,
+        fields=payload.model_dump(exclude_unset=True),
+    )
+    return ConversationOut.model_validate(conversation)
 
 
 @router.delete("/chat/conversations/{conversation_id}", response_model=DeleteResponse)
 async def delete_conversation(
     conversation_id: str,
     current_user: Annotated[User, Depends(get_current_user)],
+    session: AsyncSession = Depends(get_db_session),
 ) -> DeleteResponse:
-    await ensure_chat_tables()
-    from app.database.session import AsyncSessionFactory
-
-    async with AsyncSessionFactory() as session:
-        service = ChatService(session)
-        deleted = await service.delete_conversation(conversation_id=conversation_id, user_id=current_user.id)
-        return DeleteResponse(deleted=deleted, id=conversation_id)
+    deleted = await ChatService(session).delete_conversation(
+        conversation_id=conversation_id, user_id=current_user.id
+    )
+    return DeleteResponse(deleted=deleted, id=conversation_id)
 
 
 @router.post("/chat/messages", status_code=status.HTTP_201_CREATED, response_model=MessageOut)
 async def create_message(
     payload: MessageCreate,
     current_user: Annotated[User, Depends(get_current_user)],
+    session: AsyncSession = Depends(get_db_session),
 ) -> MessageOut:
-    await ensure_chat_tables()
-    from app.database.session import AsyncSessionFactory
-
-    async with AsyncSessionFactory() as session:
-        service = ChatService(session)
-        message = await service.create_message(
-            conversation_id=payload.conversation_id,
-            user_id=current_user.id,
-            role=payload.role,
-            content=payload.content,
-            metadata=payload.metadata,
-            token_count=payload.token_count,
-        )
-        return MessageOut.model_validate(
-            {
-                "id": message.id,
-                "conversation_id": message.conversation_id,
-                "role": message.role,
-                "content": message.content,
-                "metadata": message.payload_metadata,
-                "token_count": message.token_count,
-                "created_at": message.created_at,
-            }
-        )
+    message = await ChatService(session).create_message(
+        conversation_id=payload.conversation_id,
+        user_id=current_user.id,
+        role=payload.role,
+        content=payload.content,
+        metadata=payload.metadata,
+        token_count=payload.token_count,
+    )
+    return MessageOut.model_validate(
+        {
+            "id": message.id,
+            "conversation_id": message.conversation_id,
+            "role": message.role,
+            "content": message.content,
+            "metadata": message.payload_metadata,
+            "token_count": message.token_count,
+            "created_at": message.created_at,
+        }
+    )
 
 
 @router.get("/chat/messages/{conversation_id}", response_model=MessageListResponse)
@@ -149,37 +138,30 @@ async def list_messages(
     current_user: Annotated[User, Depends(get_current_user)],
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
+    session: AsyncSession = Depends(get_db_session),
 ) -> MessageListResponse:
-    await ensure_chat_tables()
-    from app.database.session import AsyncSessionFactory
-
-    async with AsyncSessionFactory() as session:
-        service = ChatService(session)
-        messages, total = await service.list_messages(
-            conversation_id=conversation_id,
-            user_id=current_user.id,
-            page=page,
-            page_size=page_size,
-        )
-        return MessageListResponse(
-            items=[
-                MessageOut.model_validate(
-                    {
-                        "id": message.id,
-                        "conversation_id": message.conversation_id,
-                        "role": message.role,
-                        "content": message.content,
-                        "metadata": message.payload_metadata,
-                        "token_count": message.token_count,
-                        "created_at": message.created_at,
-                    }
-                )
-                for message in messages
-            ],
-            total=total,
-            page=page,
-            page_size=page_size,
-        )
+    messages, total = await ChatService(session).list_messages(
+        conversation_id=conversation_id, user_id=current_user.id, page=page, page_size=page_size
+    )
+    return MessageListResponse(
+        items=[
+            MessageOut.model_validate(
+                {
+                    "id": item.id,
+                    "conversation_id": item.conversation_id,
+                    "role": item.role,
+                    "content": item.content,
+                    "metadata": item.payload_metadata,
+                    "token_count": item.token_count,
+                    "created_at": item.created_at,
+                }
+            )
+            for item in messages
+        ],
+        total=total,
+        page=page,
+        page_size=page_size,
+    )
 
 
 async def authenticate_websocket_user(websocket: WebSocket, session: AsyncSession) -> User:
@@ -203,9 +185,8 @@ async def authenticate_websocket_user(websocket: WebSocket, session: AsyncSessio
 
 
 async def chat_websocket_handler(websocket: WebSocket) -> None:
-    from app.database.session import AsyncSessionFactory, init_db
+    from app.database.session import AsyncSessionFactory
 
-    await init_db()
     await websocket.accept()
     async with AsyncSessionFactory() as session:
         try:

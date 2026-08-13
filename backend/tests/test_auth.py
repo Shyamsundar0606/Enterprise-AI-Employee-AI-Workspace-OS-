@@ -15,9 +15,12 @@ def client(tmp_path: pytest.TempPathFactory) -> Iterator[TestClient]:
     os.environ["JWT_ALGORITHM"] = "HS256"
 
     import app.config.settings as settings_module
+    import app.database.redis as redis_module
     import app.database.session as session_module
     import app.main as main_module
 
+    # Reset Redis client to avoid event loop conflicts between tests
+    redis_module._redis_client = None
     settings_module.get_settings.cache_clear()
     importlib.reload(session_module)
     importlib.reload(main_module)

@@ -1,13 +1,13 @@
 """auth tables
 
 Revision ID: 20260727_auth_tables
-Revises: 
+Revises:
 Create Date: 2026-07-27 00:00:00.000000
 
 """
-from alembic import op
-import sqlalchemy as sa
 
+import sqlalchemy as sa
+from alembic import op
 
 revision = "20260727_auth_tables"
 down_revision = None
@@ -43,7 +43,9 @@ def upgrade() -> None:
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_index(op.f("ix_refresh_tokens_id"), "refresh_tokens", ["id"], unique=False)
-    op.create_index(op.f("ix_refresh_tokens_token_hash"), "refresh_tokens", ["token_hash"], unique=True)
+    op.create_index(
+        op.f("ix_refresh_tokens_token_hash"), "refresh_tokens", ["token_hash"], unique=True
+    )
 
 
 def downgrade() -> None:

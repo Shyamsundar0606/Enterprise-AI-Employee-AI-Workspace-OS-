@@ -3,5 +3,11 @@ __pycache__/
 .pytest_cache/
 .ruff_cache/
 .venv/
-tests/
+Lib/
+Include/
+Scripts/
+build/
+enterprise_ai_employee_backend.egg-info/
+app.db
+tmp.db
 *.md

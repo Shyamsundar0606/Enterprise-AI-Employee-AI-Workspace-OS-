@@ -6,7 +6,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.auth.dependencies import get_current_user, require_admin
 from app.database.session import get_db_session
 from app.models.user import User
-from app.schemas.auth import AuthResponse, LoginRequest, TokenPair, TokenRefreshRequest, UserCreate, UserOut
+from app.schemas.auth import (
+    AuthResponse,
+    LoginRequest,
+    TokenPair,
+    TokenRefreshRequest,
+    UserCreate,
+    UserOut,
+)
 from app.services.auth import (
     authenticate_user,
     create_access_token,

@@ -18,6 +18,12 @@ htmlcov/
 
 # Virtual Environment
 .venv/
+backend/Lib/
+backend/Include/
+backend/Scripts/
+backend/build/
+backend/enterprise_ai_employee_backend.egg-info/
+backend/*.db
 venv/
 env/
 

@@ -14,7 +14,18 @@ def get_redis_client() -> Redis:
 
 
 async def close_redis_client() -> None:
+    """Close the Redis client safely, handling event loop closure gracefully."""
     global _redis_client
     if _redis_client is not None:
-        await _redis_client.aclose()
-        _redis_client = None
+        try:
+            await _redis_client.aclose()
+        except RuntimeError as e:
+            # If event loop is closed, we can't await cleanup operations.
+            # This commonly happens in tests when TestClient creates its own event loop.
+            # Just clear the reference since the loop is shutting down anyway.
+            if "Event loop is closed" in str(e) or "cannot schedule new futures" in str(e):
+                pass  # Loop is already closing, skip async cleanup
+            else:
+                raise
+        finally:
+            _redis_client = None

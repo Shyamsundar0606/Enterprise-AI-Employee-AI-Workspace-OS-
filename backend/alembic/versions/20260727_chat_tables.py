@@ -5,9 +5,9 @@ Revises: 20260727_auth_tables
 Create Date: 2026-07-27 00:00:00.000000
 
 """
-from alembic import op
-import sqlalchemy as sa
 
+import sqlalchemy as sa
+from alembic import op
 
 revision = "20260727_chat_tables"
 down_revision = "20260727_auth_tables"
@@ -43,7 +43,9 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(["conversation_id"], ["conversations.id"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("id"),
     )
-    op.create_index(op.f("ix_messages_conversation_id"), "messages", ["conversation_id"], unique=False)
+    op.create_index(
+        op.f("ix_messages_conversation_id"), "messages", ["conversation_id"], unique=False
+    )
     op.create_index(op.f("ix_messages_id"), "messages", ["id"], unique=False)
 
 

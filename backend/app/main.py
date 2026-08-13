@@ -22,7 +22,8 @@ logger = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     app.state.db_engine = engine
-    await init_db()
+    if engine.dialect.name == "sqlite":
+        await init_db()
     logger.info("Application startup complete")
     try:
         yield

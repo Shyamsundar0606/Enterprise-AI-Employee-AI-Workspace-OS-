@@ -7,12 +7,19 @@ name = "enterprise-ai-employee-backend"
 version = "0.1.0"
 description = "Backend foundation for Enterprise AI Employee"
 requires-python = ">=3.12"
+
 dependencies = [
     "aiosqlite>=0.10,<1.0",
     "alembic>=1.14,<2.0",
     "asyncpg>=0.30,<1.0",
     "bcrypt>=4.1,<5.0",
     "fastapi>=0.115,<1.0",
+    "email-validator>=2.2,<3.0",
+    "httpx>=0.28,<1.0",
+    "langchain-community>=0.3,<1.0",
+    "langchain-core>=0.3,<1.0",
+    "langchain-ollama>=0.2,<1.0",
+    "langgraph>=0.2,<1.0",
     "PyJWT>=2.10,<3.0",
     "pydantic-settings>=2.7,<3.0",
     "redis>=5.2,<6.0",
@@ -21,7 +28,14 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["black>=25.1,<26.0", "httpx>=0.28,<1.0", "pre-commit>=4.1,<5.0", "pytest>=8.3,<9.0", "pytest-asyncio>=0.25,<1.0", "ruff>=0.9,<1.0"]
+dev = [
+    "black>=25.1,<26.0",
+    "httpx>=0.28,<1.0",
+    "pre-commit>=4.1,<5.0",
+    "pytest>=8.3,<9.0",
+    "pytest-asyncio>=0.25,<1.0",
+    "ruff>=0.9,<1.0",
+]
 
 [tool.setuptools.packages.find]
 include = ["app*"]
@@ -29,15 +43,19 @@ include = ["app*"]
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
+norecursedirs = ["build", "Lib", "Include", "Scripts", ".venv", "node_modules"]
 
 [tool.ruff]
 target-version = "py312"
 line-length = 100
 src = ["app", "tests"]
+extend-exclude = ["build", "Lib", "Include", "Scripts"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP", "ASYNC"]
+ignore = ["B008", "E501", "ASYNC109"]
 
 [tool.black]
 line-length = 100
 target-version = ["py312"]
+extend-exclude = '''/(build|Lib|Include|Scripts)/'''

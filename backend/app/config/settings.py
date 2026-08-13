@@ -1,7 +1,7 @@
 from functools import lru_cache
 from typing import Literal
 
-from pydantic import AnyUrl, PostgresDsn, RedisDsn
+from pydantic import AnyUrl, RedisDsn
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -19,6 +19,19 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     jwt_access_token_expire_minutes: int = 30
     jwt_refresh_token_expire_days: int = 7
+    llm_provider: str = "OLLAMA"
+    ollama_url: str = "http://host.docker.internal:11434"
+    default_model: str = "qwen3"
+    temperature: float = 0.7
+    max_tokens: int = 512
+    request_timeout: float = 30.0
+    default_agent: str = "general"
+    langgraph_debug: bool = False
+    agent_timeout: float = 120.0
+    memory_enabled: bool = True
+    memory_recent_messages: int = 20
+    memory_max_context_chars: int = 12000
+    memory_redis_ttl_seconds: int = 3600
 
 
 @lru_cache
