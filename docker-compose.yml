@@ -34,10 +34,12 @@ services:
       TEMPERATURE: ${TEMPERATURE:-0.7}
       MAX_TOKENS: ${MAX_TOKENS:-512}
       REQUEST_TIMEOUT: ${REQUEST_TIMEOUT:-30.0}
+      DOCUMENT_STORAGE_PATH: ${DOCUMENT_STORAGE_PATH:-/app/data/documents}
     depends_on:
       postgres: {condition: service_healthy}
       redis: {condition: service_healthy}
     ports: ["8000:8000"]
+    volumes: [document_data:/app/data/documents]
   frontend:
     build:
       context: ./frontend
@@ -52,3 +54,4 @@ services:
 volumes:
   postgres_data:
   redis_data:
+  document_data:

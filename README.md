@@ -1,6 +1,6 @@
 # Enterprise AI Employee (AI Workspace OS)
 
-Enterprise AI Employee is a modular workspace operating system for enterprise AI workflows. This repository currently contains **Milestone 1**: the production-oriented application foundation. AI agents and integrations are intentionally out of scope until later milestones.
+Enterprise AI Employee is a modular workspace operating system for enterprise AI workflows. Milestones 1–7 provide the application foundation, authentication, chat and memory persistence, LLM provider layer, LangGraph runtime, and controlled tool execution.
 
 ## Stack
 
@@ -25,6 +25,29 @@ The backend now exposes a provider-agnostic LLM interface under `/api/v1/llm/*`.
 - `POST /api/v1/llm/stream`
 
 Use `LLM_PROVIDER=OLLAMA`, `OLLAMA_URL=http://host.docker.internal:11434`, and `DEFAULT_MODEL=qwen3` for the first working provider.
+
+## Safe tools
+
+The GeneralAssistant can call explicitly registered, authenticated tools through a controlled execution layer. Milestone 7 includes:
+
+- `calculator` — AST-restricted arithmetic only; arbitrary code, imports, calls, and attribute access are rejected.
+- `current_time` — standard-library local time lookup for an IANA timezone.
+
+Discover the safe tool catalog with authenticated `GET /api/v1/tools`. Tool calls are persisted as `tool` messages with sanitized JSON metadata. Shell, filesystem, arbitrary Python, browser, and unrestricted HTTP tools are intentionally unavailable.
+
+## Enterprise knowledge base (RAG)
+
+Authenticated users can upload TXT, Markdown, and text-based PDF documents through `POST /api/v1/knowledge/documents`. The ingestion pipeline validates the upload, stores it using a generated identifier, extracts text, deterministically chunks it, creates local embeddings, and persists user-owned chunks and vectors in PostgreSQL.
+
+Knowledge search and agent retrieval always filter by the JWT-authenticated user. The agent receives retrieved evidence separately from conversation memory and returns source metadata with grounded responses. `GET`, `DELETE`, chunk listing, and `POST /api/v1/knowledge/search` are all authenticated.
+
+Embeddings run locally through Ollama; no paid embedding API is required. Install the local model before document ingestion:
+
+```bash
+ollama pull nomic-embed-text
+```
+
+Configure `RAG_*`, `DOCUMENT_STORAGE_PATH`, and `EMBEDDING_*` variables from `.env.example`. PostgreSQL persists embedding vectors as JSON arrays and the repository applies user-filtered cosine similarity scoring, avoiding an additional vector-database service in this milestone.
 
 ## Commands
 

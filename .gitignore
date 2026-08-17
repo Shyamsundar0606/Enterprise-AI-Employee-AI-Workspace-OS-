@@ -37,6 +37,7 @@ backend/pyvenv.cfg
 *.db
 *.sqlite
 *.sqlite3
+data/documents/
 
 # ==========================
 # Node

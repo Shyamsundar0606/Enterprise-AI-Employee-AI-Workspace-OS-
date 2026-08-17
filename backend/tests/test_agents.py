@@ -8,6 +8,7 @@ from app.agents.router import ExecutionRouter
 from app.agents.schemas import AgentChatRequest
 from app.agents.state import create_initial_state
 from app.llm.schemas import LLMChatResponse, LLMHealthResponse
+from sqlalchemy import select
 
 
 def test_initial_state_and_plan_are_tool_free() -> None:
@@ -68,9 +69,10 @@ async def test_runtime_uses_injected_llm_service(tmp_path: Path) -> None:
 
     class FakeLLMService:
         async def chat(self, request):
+            assert "110" in request.message
             return LLMChatResponse(
                 conversation_id=request.conversation_id,
-                response="Hello",
+                response="The result is 110.",
                 provider="fake",
                 model="fake",
             )
@@ -83,9 +85,23 @@ async def test_runtime_uses_injected_llm_service(tmp_path: Path) -> None:
 
     # Run the agent with the created user
     runtime = runtime_module.AgentRuntime(llm_service=FakeLLMService())
-    request = AgentChatRequest(conversation_id="conversation-1", message="Hi")
+    request = AgentChatRequest(conversation_id="conversation-1", message="Calculate 25 * 4 + 10")
     response = await runtime.run(user_id=user_id, request=request)
-    assert response.response == "Hello"
-    assert response.plan.requires_tools is False
+    assert response.response == "The result is 110."
+    assert response.plan.requires_tools is True
+    assert response.tool_result is not None
+    assert response.tool_result.output == {"result": 110}
+
+    from app.models.message import Message
+
+    async with session_module.AsyncSessionFactory() as session:
+        messages = list(
+            (await session.execute(select(Message).order_by(Message.created_at.asc())))
+            .scalars()
+            .all()
+        )
+    assert [message.role for message in messages] == ["user", "tool", "assistant"]
+    assert messages[1].payload_metadata["tool_call"]["tool_name"] == "calculator"
+
     chunks = [chunk async for chunk in runtime.stream(user_id=user_id, request=request)]
     assert chunks == ["Hello"]

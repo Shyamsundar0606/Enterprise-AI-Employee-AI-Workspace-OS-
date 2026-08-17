@@ -1,4 +1,5 @@
 from functools import lru_cache
+from pathlib import Path
 from typing import Literal
 
 from pydantic import AnyUrl, RedisDsn
@@ -32,6 +33,17 @@ class Settings(BaseSettings):
     memory_recent_messages: int = 20
     memory_max_context_chars: int = 12000
     memory_redis_ttl_seconds: int = 3600
+    rag_enabled: bool = True
+    max_document_size_mb: int = 10
+    document_storage_path: Path = Path("/app/data/documents")
+    rag_chunk_size: int = 1000
+    rag_chunk_overlap: int = 150
+    rag_top_k: int = 5
+    rag_similarity_threshold: float = 0.4
+    embedding_provider: str = "ollama"
+    embedding_model: str = "nomic-embed-text"
+    embedding_base_url: str = "http://host.docker.internal:11434"
+    embedding_timeout: float = 30.0
 
 
 @lru_cache

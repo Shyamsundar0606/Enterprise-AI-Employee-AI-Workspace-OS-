@@ -1,4 +1,5 @@
 import asyncio
+import json
 import logging
 import time
 from collections.abc import AsyncIterator
@@ -11,7 +12,11 @@ from app.config.settings import get_settings
 from app.database.session import AsyncSessionFactory
 from app.llm.schemas import LLMChatRequest
 from app.llm.service import LLMService
+from app.models.user import UserRole
 from app.services.memory import MemoryService
+from app.services.knowledge import KnowledgeError, KnowledgeService
+from app.schemas.knowledge import KnowledgeSource
+from app.tools.schemas import ToolResult
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +29,9 @@ class AgentRuntime:
         self._settings = get_settings()
         self._context_builder = ContextBuilder()
 
-    async def run(self, *, user_id: int, request: AgentChatRequest) -> AgentChatResponse:
+    async def run(
+        self, *, user_id: int, request: AgentChatRequest, user_role: str = UserRole.USER.value
+    ) -> AgentChatResponse:
         """Run the agent with memory integration."""
         started = time.perf_counter()
 
@@ -47,14 +54,36 @@ class AgentRuntime:
                 history=history, user_message=request.message
             )
 
+            retrieved_results = []
+            if self._settings.rag_enabled:
+                try:
+                    retrieved_results = await KnowledgeService(session).search(
+                        user_id=user_id,
+                        query=request.message,
+                    )
+                except KnowledgeError:
+                    logger.warning(
+                        "Knowledge retrieval unavailable; continuing without document context",
+                        extra={"conversation_id": request.conversation_id, "user_id": user_id},
+                    )
+
+            sources = [result.source for result in retrieved_results]
+            retrieved_context = [
+                {"content": result.content, "source": result.source.model_dump(mode="json")}
+                for result in retrieved_results
+            ]
+
             # Create initial state with conversation history
             state = create_initial_state(
                 conversation_id=request.conversation_id,
                 user_id=user_id,
                 user_message=request.message,
                 conversation_history=history,
+                retrieved_context=retrieved_context,
+                sources=[source.model_dump(mode="json") for source in sources],
             )
             state["messages"] = agent_messages
+            state["user_role"] = user_role
 
             try:
                 result = await asyncio.wait_for(
@@ -77,6 +106,29 @@ class AgentRuntime:
                 metadata=None,
                 token_count=None,
             )
+
+            tool_result = (
+                ToolResult.model_validate(result["tool_result"])
+                if result.get("tool_result") is not None
+                else None
+            )
+            if tool_result is not None:
+                tool_metadata = tool_result.model_dump(mode="json")
+                await memory_service.save_message(
+                    conversation_id=request.conversation_id,
+                    user_id=user_id,
+                    role="tool",
+                    content=json.dumps(
+                        (
+                            tool_result.output
+                            if tool_result.status == "success"
+                            else tool_result.error.model_dump()
+                        ),
+                        sort_keys=True,
+                    ),
+                    metadata={"tool_call": tool_metadata},
+                    token_count=None,
+                )
 
             # Persist assistant response
             assistant_response = result.get("llm_response", "")
@@ -105,6 +157,8 @@ class AgentRuntime:
             provider=result.get("metadata", {}).get("provider", "unknown"),
             status=result["status"],
             duration_ms=duration_ms,
+            tool_result=tool_result,
+            sources=[KnowledgeSource.model_validate(source) for source in result.get("sources", [])],
         )
 
     async def stream(self, *, user_id: int, request: AgentChatRequest) -> AsyncIterator[str]:

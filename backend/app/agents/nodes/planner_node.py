@@ -7,7 +7,10 @@ logger = logging.getLogger(__name__)
 
 
 async def planner_node(state: AgentState, planner: RequestPlanner) -> AgentState:
-    plan = planner.create_plan(state["user_message"])
+    plan = planner.create_plan(
+        state["user_message"],
+        retrieved_context=state.get("retrieved_context"),
+    )
     logger.info(
         "Planner completed",
         extra={"conversation_id": state["conversation_id"], "plan": plan.model_dump()},

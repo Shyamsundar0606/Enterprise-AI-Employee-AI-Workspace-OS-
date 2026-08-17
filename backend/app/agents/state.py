@@ -9,12 +9,15 @@ from typing import Any, Literal, TypedDict
 class AgentState(TypedDict, total=False):
     conversation_id: str
     user_id: int
+    user_role: str
     user_message: str
     messages: list[dict[str, str]]
     conversation_history: list[dict[str, Any]]
+    retrieved_context: list[dict[str, Any]]
+    sources: list[dict[str, Any]]
     plan: dict[str, Any]
     selected_tool: str
-    tool_result: str | None
+    tool_result: dict[str, Any] | None
     llm_response: str
     status: Literal["pending", "running", "completed", "failed"]
     metadata: dict[str, Any]
@@ -28,6 +31,8 @@ def create_initial_state(
     user_id: int,
     user_message: str,
     conversation_history: list[dict[str, Any]] | None = None,
+    retrieved_context: list[dict[str, Any]] | None = None,
+    sources: list[dict[str, Any]] | None = None,
 ) -> AgentState:
     """Create an isolated state object for one graph invocation."""
     state: AgentState = {
@@ -36,6 +41,8 @@ def create_initial_state(
         "user_message": user_message,
         "messages": [{"role": "user", "content": user_message}],
         "conversation_history": conversation_history or [],
+        "retrieved_context": retrieved_context or [],
+        "sources": sources or [],
         "status": "pending",
         "metadata": {},
         "started_at": datetime.now(UTC).isoformat(),

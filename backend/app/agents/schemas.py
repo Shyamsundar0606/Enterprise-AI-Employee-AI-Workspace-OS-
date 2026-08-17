@@ -1,10 +1,17 @@
+from typing import Any
+
 from pydantic import BaseModel, Field
+
+from app.tools.schemas import ToolResult
+from app.schemas.knowledge import KnowledgeSource
 
 
 class AgentPlan(BaseModel):
     goal: str
     steps: list[str]
     requires_tools: bool = False
+    tool_name: str | None = None
+    tool_input: dict[str, Any] = Field(default_factory=dict)
 
 
 class AgentChatRequest(BaseModel):
@@ -19,6 +26,8 @@ class AgentChatResponse(BaseModel):
     provider: str
     status: str
     duration_ms: float
+    tool_result: ToolResult | None = None
+    sources: list[KnowledgeSource] = Field(default_factory=list)
 
 
 class AgentInfo(BaseModel):

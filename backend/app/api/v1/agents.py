@@ -42,7 +42,11 @@ async def chat(
     current_user: Annotated[User, Depends(get_current_user)],
     runtime: Annotated[AgentRuntime, Depends(get_agent_runtime)],
 ) -> AgentChatResponse:
-    return await runtime.run(user_id=current_user.id, request=payload)
+    return await runtime.run(
+        user_id=current_user.id,
+        user_role=current_user.role,
+        request=payload,
+    )
 
 
 @router.post("/stream")
