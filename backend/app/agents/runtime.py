@@ -13,9 +13,9 @@ from app.database.session import AsyncSessionFactory
 from app.llm.schemas import LLMChatRequest
 from app.llm.service import LLMService
 from app.models.user import UserRole
-from app.services.memory import MemoryService
-from app.services.knowledge import KnowledgeError, KnowledgeService
 from app.schemas.knowledge import KnowledgeSource
+from app.services.knowledge import KnowledgeError, KnowledgeService
+from app.services.memory import MemoryService
 from app.tools.schemas import ToolResult
 
 logger = logging.getLogger(__name__)
@@ -158,7 +158,11 @@ class AgentRuntime:
             status=result["status"],
             duration_ms=duration_ms,
             tool_result=tool_result,
-            sources=[KnowledgeSource.model_validate(source) for source in result.get("sources", [])],
+            sources=[
+                KnowledgeSource.model_validate(source) for source in result.get("sources", [])
+            ],
+            agents_used=result.get("metadata", {}).get("agents_used", []),
+            delegation_count=result.get("metadata", {}).get("delegation_count", 0),
         )
 
     async def stream(self, *, user_id: int, request: AgentChatRequest) -> AsyncIterator[str]:

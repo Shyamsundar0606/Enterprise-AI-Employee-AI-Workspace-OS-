@@ -48,8 +48,12 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(["user_id"], ["users.id"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("id"),
     )
-    op.create_index(op.f("ix_document_chunks_document_id"), "document_chunks", ["document_id"], unique=False)
-    op.create_index(op.f("ix_document_chunks_user_id"), "document_chunks", ["user_id"], unique=False)
+    op.create_index(
+        op.f("ix_document_chunks_document_id"), "document_chunks", ["document_id"], unique=False
+    )
+    op.create_index(
+        op.f("ix_document_chunks_user_id"), "document_chunks", ["user_id"], unique=False
+    )
 
 
 def downgrade() -> None:

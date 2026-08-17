@@ -2,13 +2,12 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from datetime import UTC, datetime
-from typing import Sequence
-
-from sqlalchemy import Select, select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.document import Document, DocumentChunk
+from sqlalchemy import Select, select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class KnowledgeRepository:
@@ -79,7 +78,11 @@ class KnowledgeRepository:
         statement: Select[tuple[DocumentChunk, Document]] = (
             select(DocumentChunk, Document)
             .join(Document, DocumentChunk.document_id == Document.id)
-            .where(DocumentChunk.user_id == user_id, Document.user_id == user_id, Document.status == "ready")
+            .where(
+                DocumentChunk.user_id == user_id,
+                Document.user_id == user_id,
+                Document.status == "ready",
+            )
         )
         if document_ids:
             statement = statement.where(Document.id.in_(document_ids))

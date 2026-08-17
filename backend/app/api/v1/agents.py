@@ -33,7 +33,15 @@ async def list_agents(
     registry: Annotated[AgentRegistry, Depends(get_agent_registry)],
     _: Annotated[User, Depends(get_current_user)],
 ) -> list[AgentInfo]:
-    return [AgentInfo(name=agent.name, description=agent.description) for agent in registry.list()]
+    return [
+        AgentInfo(
+            name=agent.name,
+            description=agent.description,
+            capabilities=list(agent.capabilities),
+            enabled=agent.enabled,
+        )
+        for agent in registry.list()
+    ]
 
 
 @router.post("/chat", response_model=AgentChatResponse)

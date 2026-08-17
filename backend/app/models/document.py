@@ -38,7 +38,9 @@ class Document(Base):
 
     user: Mapped[User] = relationship(back_populates="documents")
     chunks: Mapped[list[DocumentChunk]] = relationship(
-        back_populates="document", cascade="all, delete-orphan", order_by="DocumentChunk.chunk_index"
+        back_populates="document",
+        cascade="all, delete-orphan",
+        order_by="DocumentChunk.chunk_index",
     )
 
 

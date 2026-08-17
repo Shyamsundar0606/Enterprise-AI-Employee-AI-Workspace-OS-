@@ -9,20 +9,23 @@ from io import BytesIO
 from pathlib import Path
 
 import pytest
-from fastapi.testclient import TestClient
-from pypdf import PdfWriter
-from pypdf.generic import DecodedStreamObject, DictionaryObject, NameObject
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.agents.graph import build_graph
 from app.agents.nodes.llm_node import llm_node
 from app.agents.state import create_initial_state
 from app.llm.schemas import LLMChatResponse
 from app.models.user import User
 from app.services.chunking import TextChunker
-from app.services.document_extraction import DocumentExtractor, DocumentExtractionError, ExtractedPage
+from app.services.document_extraction import (
+    DocumentExtractionError,
+    DocumentExtractor,
+    ExtractedPage,
+)
 from app.services.embeddings import EmbeddingError, EmbeddingService
 from app.services.knowledge import DocumentStorage, KnowledgeError, KnowledgeService
+from fastapi.testclient import TestClient
+from pypdf import PdfWriter
+from pypdf.generic import DecodedStreamObject, DictionaryObject, NameObject
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class FakeEmbeddingProvider:
@@ -71,7 +74,9 @@ def test_chunking_is_deterministic_and_preserves_page_metadata() -> None:
 @pytest.mark.asyncio
 async def test_text_markdown_and_pdf_extraction() -> None:
     extractor = DocumentExtractor()
-    assert (await extractor.extract(content=b"# Phoenix", content_type="text/markdown"))[0].content == "# Phoenix"
+    assert (await extractor.extract(content=b"# Phoenix", content_type="text/markdown"))[
+        0
+    ].content == "# Phoenix"
     pages = await extractor.extract(
         content=_pdf_with_text("Project Phoenix has a budget of 200000 euros."),
         content_type="application/pdf",
@@ -124,7 +129,9 @@ async def _user(session: AsyncSession, *, email: str, username: str) -> User:
 
 
 @pytest.mark.asyncio
-async def test_ingestion_retrieval_and_user_isolation(session: AsyncSession, tmp_path: Path) -> None:
+async def test_ingestion_retrieval_and_user_isolation(
+    session: AsyncSession, tmp_path: Path
+) -> None:
     user_a = await _user(session, email="a@example.com", username="usera")
     user_b = await _user(session, email="b@example.com", username="userb")
     service = KnowledgeService(
@@ -142,13 +149,16 @@ async def test_ingestion_retrieval_and_user_isolation(session: AsyncSession, tmp
     assert document.chunk_count == 1
     assert len(await service.search(user_id=user_a.id, query="Phoenix budget")) == 1
     assert await service.search(user_id=user_b.id, query="Phoenix budget") == []
-    assert await service.search(
-        user_id=user_b.id, query="Phoenix budget", document_ids=[document.id]
-    ) == []
+    assert (
+        await service.search(user_id=user_b.id, query="Phoenix budget", document_ids=[document.id])
+        == []
+    )
 
 
 @pytest.mark.asyncio
-async def test_document_delete_removes_chunks_and_storage(session: AsyncSession, tmp_path: Path) -> None:
+async def test_document_delete_removes_chunks_and_storage(
+    session: AsyncSession, tmp_path: Path
+) -> None:
     user = await _user(session, email="delete@example.com", username="deleteuser")
     storage = DocumentStorage(tmp_path / "storage")
     service = KnowledgeService(session, embedding_service=_embedding_service(), storage=storage)
@@ -204,7 +214,9 @@ async def test_retrieved_context_is_added_to_llm_prompt() -> None:
 
     service = FakeLLM()
     state = create_initial_state(
-        conversation_id="rag-state", user_id=1, user_message="What is the Phoenix budget?",
+        conversation_id="rag-state",
+        user_id=1,
+        user_message="What is the Phoenix budget?",
         retrieved_context=[{"content": "Phoenix budget is 200000 euros."}],
         sources=[{"document_id": "doc-1"}],
     )
@@ -296,7 +308,10 @@ def test_authenticated_upload_search_and_ownership_api(client: TestClient) -> No
     )
     assert upload.status_code == 201
     document_id = upload.json()["id"]
-    assert client.get(f"/api/v1/knowledge/documents/{document_id}", headers=headers_b).status_code == 404
+    assert (
+        client.get(f"/api/v1/knowledge/documents/{document_id}", headers=headers_b).status_code
+        == 404
+    )
     search = client.post(
         "/api/v1/knowledge/search",
         headers=headers_a,
@@ -310,5 +325,11 @@ def test_authenticated_upload_search_and_ownership_api(client: TestClient) -> No
         json={"query": "Phoenix budget", "document_ids": [document_id]},
     )
     assert cross_search.json()["results"] == []
-    assert client.delete(f"/api/v1/knowledge/documents/{document_id}", headers=headers_b).status_code == 404
-    assert client.delete(f"/api/v1/knowledge/documents/{document_id}", headers=headers_a).status_code == 200
+    assert (
+        client.delete(f"/api/v1/knowledge/documents/{document_id}", headers=headers_b).status_code
+        == 404
+    )
+    assert (
+        client.delete(f"/api/v1/knowledge/documents/{document_id}", headers=headers_a).status_code
+        == 200
+    )

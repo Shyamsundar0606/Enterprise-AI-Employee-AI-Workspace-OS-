@@ -49,6 +49,10 @@ ollama pull nomic-embed-text
 
 Configure `RAG_*`, `DOCUMENT_STORAGE_PATH`, and `EMBEDDING_*` variables from `.env.example`. PostgreSQL persists embedding vectors as JSON arrays and the repository applies user-filtered cosine similarity scoring, avoiding an additional vector-database service in this milestone.
 
+## Multi-agent delegation
+
+The existing LangGraph runtime uses a bounded deterministic supervisor with four explicitly registered roles: `general`, `knowledge`, `data`, and `planner`. The supervisor derives trusted identity from the authenticated runtime, limits delegation with `MAX_AGENT_DELEGATIONS` and `MAX_AGENT_STEPS`, and preserves source metadata, memory, and tool restrictions. No specialist can register arbitrary agents, access another user's documents, or bypass the shared ToolExecutor.
+
 ## Commands
 
 ```bash
@@ -75,6 +79,12 @@ docs/      Architecture documentation
 ```
 
 Run `pre-commit install` once after installing backend development dependencies. Every change should pass `make lint` and `make test` before commit.
+
+## Enterprise integrations and MCP
+
+Milestone 10 adds a separate, policy-enforced connector boundary at `/api/v1/integrations`. `ConnectorRegistry` exposes only statically registered local connectors; `ConnectorExecutor` validates input, derives identity from JWT authentication, redacts sensitive fields, limits results, and writes safe audit events. Local Email, Calendar, Workspace, GitHub-style, and MCP-compatible connectors are free to test.
+
+Reads may run automatically. Write and destructive capabilities always return `approval_required` and do not perform consequential actions; the approval workflow is deferred to Milestone 11. The workspace connector confines requests to a per-user sandbox and blocks traversal, absolute paths, symlinks, and secret-like filenames. MCP tools/resources are allow-listed and their data is untrusted.
 
 ## Contact
 

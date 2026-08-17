@@ -44,6 +44,17 @@ class Settings(BaseSettings):
     embedding_model: str = "nomic-embed-text"
     embedding_base_url: str = "http://host.docker.internal:11434"
     embedding_timeout: float = 30.0
+    multi_agent_enabled: bool = True
+    max_agent_delegations: int = 4
+    max_agent_steps: int = 8
+    max_agent_task_length: int = 4000
+    integrations_enabled: bool = True
+    local_connectors_enabled: bool = True
+    mcp_enabled: bool = True
+    mcp_request_timeout_seconds: float = 15.0
+    connector_max_result_size: int = 50_000
+    workspace_connector_path: Path = Path("/app/data/workspace")
+    connector_audit_enabled: bool = True
 
 
 @lru_cache

@@ -14,7 +14,7 @@ from app.models.document import Document, DocumentChunk
 from app.repositories.knowledge import KnowledgeRepository
 from app.schemas.knowledge import KnowledgeSearchResult, KnowledgeSource
 from app.services.chunking import TextChunker
-from app.services.document_extraction import DocumentExtractor, DocumentExtractionError
+from app.services.document_extraction import DocumentExtractionError, DocumentExtractor
 from app.services.embeddings import EmbeddingError, EmbeddingService
 
 logger = logging.getLogger(__name__)
@@ -110,7 +110,9 @@ class KnowledgeService:
                     for chunk, vector in zip(chunks, vectors, strict=True)
                 ]
             )
-            await self.repository.set_document_status(document, status="ready", chunk_count=len(chunks))
+            await self.repository.set_document_status(
+                document, status="ready", chunk_count=len(chunks)
+            )
         except (DocumentExtractionError, EmbeddingError, KnowledgeError) as exc:
             await self.session.rollback()
             await self.storage.delete(stored_filename)

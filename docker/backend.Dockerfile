@@ -5,7 +5,6 @@ WORKDIR /app
 RUN addgroup --system app && adduser --system --ingroup app app
 COPY . .
 RUN pip install --upgrade pip && pip install .[dev]
-RUN chown -R app:app /app
-USER app
+RUN mkdir -p /app/data/documents && chown -R app:app /app
 EXPOSE 8000
-CMD ["sh", "-c", "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"]
+CMD ["sh", "-c", "chown -R app:app /app/data && exec su app -s /bin/sh -c 'alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000'"]

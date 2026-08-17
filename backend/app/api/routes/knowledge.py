@@ -21,7 +21,11 @@ router = APIRouter(prefix="/knowledge", tags=["knowledge"])
 
 
 def _not_found_or_bad_request(exc: KnowledgeError) -> HTTPException:
-    status_code = status.HTTP_404_NOT_FOUND if str(exc) == "Document not found" else status.HTTP_400_BAD_REQUEST
+    status_code = (
+        status.HTTP_404_NOT_FOUND
+        if str(exc) == "Document not found"
+        else status.HTTP_400_BAD_REQUEST
+    )
     return HTTPException(status_code=status_code, detail=str(exc))
 
 
@@ -97,7 +101,9 @@ async def delete_document(
     session: Annotated[AsyncSession, Depends(get_db_session)],
 ) -> DeleteResponse:
     try:
-        await KnowledgeService(session).delete_document(user_id=current_user.id, document_id=document_id)
+        await KnowledgeService(session).delete_document(
+            user_id=current_user.id, document_id=document_id
+        )
         return DeleteResponse(deleted=True, id=document_id)
     except KnowledgeError as exc:
         raise _not_found_or_bad_request(exc) from exc

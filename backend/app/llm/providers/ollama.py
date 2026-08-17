@@ -115,5 +115,12 @@ class OllamaProvider(BaseLLMProvider):
         if not text:
             raise ProviderConfigurationError("Text must not be empty")
         payload = {"model": model or self.default_model, "input": text}
+        try:
+            result = await self._request("/api/embed", payload=payload, timeout=timeout)
+            embeddings = result.get("embeddings", [])
+            if embeddings and isinstance(embeddings[0], list):
+                return embeddings[0]
+        except ProviderUnavailableError:
+            pass
         result = await self._request("/api/embeddings", payload=payload, timeout=timeout)
         return result.get("embedding", [])

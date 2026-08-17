@@ -15,9 +15,16 @@ class AgentState(TypedDict, total=False):
     conversation_history: list[dict[str, Any]]
     retrieved_context: list[dict[str, Any]]
     sources: list[dict[str, Any]]
+    selected_agent: str
+    active_agent: str
+    delegation_count: int
+    step_count: int
+    agent_tasks: list[dict[str, Any]]
+    agent_results: list[dict[str, Any]]
     plan: dict[str, Any]
     selected_tool: str
     tool_result: dict[str, Any] | None
+    integration_result: dict[str, Any] | None
     llm_response: str
     status: Literal["pending", "running", "completed", "failed"]
     metadata: dict[str, Any]
@@ -43,6 +50,11 @@ def create_initial_state(
         "conversation_history": conversation_history or [],
         "retrieved_context": retrieved_context or [],
         "sources": sources or [],
+        "delegation_count": 0,
+        "step_count": 0,
+        "agent_tasks": [],
+        "agent_results": [],
+        "integration_result": None,
         "status": "pending",
         "metadata": {},
         "started_at": datetime.now(UTC).isoformat(),

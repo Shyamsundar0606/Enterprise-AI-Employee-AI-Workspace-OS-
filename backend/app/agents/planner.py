@@ -11,11 +11,18 @@ class RequestPlanner:
     def create_plan(
         self, user_message: str, retrieved_context: list[dict[str, object]] | None = None
     ) -> AgentPlan:
-        contextual_expression = self._contextual_percentage_expression(user_message, retrieved_context)
+        contextual_expression = self._contextual_percentage_expression(
+            user_message, retrieved_context
+        )
         if contextual_expression is not None:
             return AgentPlan(
                 goal="Calculate a percentage using retrieved document evidence",
-                steps=["Use retrieved evidence", "Validate arithmetic", "Run calculator", "Explain result"],
+                steps=[
+                    "Use retrieved evidence",
+                    "Validate arithmetic",
+                    "Run calculator",
+                    "Explain result",
+                ],
                 requires_tools=True,
                 tool_name="calculator",
                 tool_input={"expression": contextual_expression},
@@ -62,7 +69,9 @@ class RequestPlanner:
     def _contextual_percentage_expression(
         user_message: str, retrieved_context: list[dict[str, object]] | None
     ) -> str | None:
-        percentage = re.search(r"\b(\d+(?:\.\d+)?)%\s+of\s+(?:that|it|the budget)\b", user_message, re.I)
+        percentage = re.search(
+            r"\b(\d+(?:\.\d+)?)%\s+of\s+(?:that|it|the budget)\b", user_message, re.I
+        )
         if percentage is None or not retrieved_context:
             return None
         content = " ".join(
