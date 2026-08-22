@@ -32,15 +32,46 @@ class WorkspaceConnector(BaseConnector):
     @property
     def capabilities(self) -> tuple[ConnectorCapability, ...]:
         return (
-            ConnectorCapability(name="list_files", description="List safe workspace files", access_type=AccessType.READ, input_schema={}),
-            ConnectorCapability(name="get_file_metadata", description="Get safe file metadata", access_type=AccessType.READ, input_schema=PathInput.model_json_schema()),
-            ConnectorCapability(name="read_text_file", description="Read a safe text file", access_type=AccessType.READ, input_schema=PathInput.model_json_schema()),
-            ConnectorCapability(name="create_text_file", description="Create workspace file", access_type=AccessType.WRITE, input_schema=CreateFileInput.model_json_schema()),
-            ConnectorCapability(name="delete_file", description="Delete workspace file", access_type=AccessType.DESTRUCTIVE, input_schema=PathInput.model_json_schema()),
+            ConnectorCapability(
+                name="list_files",
+                description="List safe workspace files",
+                access_type=AccessType.READ,
+                input_schema={},
+            ),
+            ConnectorCapability(
+                name="get_file_metadata",
+                description="Get safe file metadata",
+                access_type=AccessType.READ,
+                input_schema=PathInput.model_json_schema(),
+            ),
+            ConnectorCapability(
+                name="read_text_file",
+                description="Read a safe text file",
+                access_type=AccessType.READ,
+                input_schema=PathInput.model_json_schema(),
+            ),
+            ConnectorCapability(
+                name="create_text_file",
+                description="Create workspace file",
+                access_type=AccessType.WRITE,
+                input_schema=CreateFileInput.model_json_schema(),
+            ),
+            ConnectorCapability(
+                name="delete_file",
+                description="Delete workspace file",
+                access_type=AccessType.DESTRUCTIVE,
+                input_schema=PathInput.model_json_schema(),
+            ),
         )
 
     def input_model(self, operation: str) -> type[BaseModel]:
-        models = {"list_files": EmptyInput, "get_file_metadata": PathInput, "read_text_file": PathInput, "create_text_file": CreateFileInput, "delete_file": PathInput}
+        models = {
+            "list_files": EmptyInput,
+            "get_file_metadata": PathInput,
+            "read_text_file": PathInput,
+            "create_text_file": CreateFileInput,
+            "delete_file": PathInput,
+        }
         if operation not in models:
             self._invalid(operation)
         return models[operation]
@@ -52,14 +83,22 @@ class WorkspaceConnector(BaseConnector):
     async def health(self) -> bool:
         return True
 
-    async def execute(self, *, operation: str, input_data: BaseModel, context: ConnectorContext) -> dict[str, Any]:
+    async def execute(
+        self, *, operation: str, input_data: BaseModel, context: ConnectorContext
+    ) -> dict[str, Any]:
         root = self._user_root(context.authenticated_user_id)
         root.mkdir(parents=True, exist_ok=True)
         sample = root / "project-status.txt"
         if not sample.exists():
             sample.write_text("Project Phoenix workspace status: active.", encoding="utf-8")
         if operation == "list_files":
-            return {"files": [item.name for item in root.iterdir() if item.is_file() and self._safe_name(item.name)]}
+            return {
+                "files": [
+                    item.name
+                    for item in root.iterdir()
+                    if item.is_file() and self._safe_name(item.name)
+                ]
+            }
         path = self._resolve(root, input_data.path)
         if operation == "get_file_metadata":
             if not path.is_file():
@@ -85,4 +124,10 @@ class WorkspaceConnector(BaseConnector):
 
     @staticmethod
     def _safe_name(name: str) -> bool:
-        return name not in {".env", ".env.local", "id_rsa", "credentials", "secrets"} and not name.startswith(".")
+        return name not in {
+            ".env",
+            ".env.local",
+            "id_rsa",
+            "credentials",
+            "secrets",
+        } and not name.startswith(".")

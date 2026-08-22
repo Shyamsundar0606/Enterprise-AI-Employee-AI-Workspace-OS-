@@ -4,6 +4,7 @@ import logging
 from typing import Any
 
 import pytest
+import pytest_asyncio
 
 logger = logging.getLogger(__name__)
 
@@ -21,6 +22,22 @@ def reset_redis_and_modules_between_tests() -> Any:
         logger.debug("Reset Redis client after test")
     except Exception as e:
         logger.debug(f"Error resetting Redis client: {e}")
+
+
+@pytest_asyncio.fixture(autouse=True)
+async def dispose_database_engine_between_tests() -> None:
+    """Release asyncpg connections before pytest switches to another event loop.
+
+    The application owns one module-global AsyncEngine. pytest-asyncio creates
+    a function-scoped loop by default, while asyncpg connections are bound to
+    the loop that opened them. Disposing after every test keeps production
+    pooling unchanged and prevents a checked-in connection from being reused
+    by a later test's loop.
+    """
+    yield
+    from app.database.session import engine
+
+    await engine.dispose()
 
 
 @pytest.fixture

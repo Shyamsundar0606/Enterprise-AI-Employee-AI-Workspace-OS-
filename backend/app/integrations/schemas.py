@@ -23,6 +23,18 @@ class ConnectorContext(BaseModel):
     role: str = Field(min_length=1, max_length=32)
     conversation_id: str | None = Field(default=None, max_length=64)
     request_id: str | None = Field(default=None, max_length=128)
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class ApprovedActionContext(BaseModel):
+    """Internal-only proof that a persisted workflow approval was consumed."""
+
+    model_config = ConfigDict(frozen=True)
+    approval_id: str
+    workflow_id: str
+    workflow_step_id: str
+    authenticated_user_id: int = Field(gt=0)
+    action_hash: str = Field(min_length=64, max_length=64)
 
 
 class ConnectorCapability(BaseModel):

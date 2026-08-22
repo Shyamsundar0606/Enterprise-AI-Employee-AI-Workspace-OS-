@@ -62,7 +62,19 @@ class Supervisor:
     @staticmethod
     def _select_agents(message: str, context: list[dict[str, object]]) -> list[str]:
         lower = message.lower()
-        if any(term in lower for term in ("email", "mailbox", "meeting", "calendar", "github", "issue", "mcp", "project status")):
+        if any(
+            term in lower
+            for term in (
+                "email",
+                "mailbox",
+                "meeting",
+                "calendar",
+                "github",
+                "issue",
+                "mcp",
+                "project status",
+            )
+        ):
             return ["integration"]
         knowledge = bool(context) or any(
             term in lower

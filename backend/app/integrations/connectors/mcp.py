@@ -26,10 +26,40 @@ class MockMCPConnector(BaseConnector):
 
     @property
     def capabilities(self) -> tuple[ConnectorCapability, ...]:
-        return (ConnectorCapability(name="echo", description="Echo safe text", access_type=AccessType.READ, input_schema=EchoInput.model_json_schema()), ConnectorCapability(name="summarize_text_metadata", description="Return text metadata", access_type=AccessType.READ, input_schema=EchoInput.model_json_schema()), ConnectorCapability(name="project_status", description="Read local project status", access_type=AccessType.READ, input_schema={}), ConnectorCapability(name="read_resource", description="Read an allow-listed resource", access_type=AccessType.READ, input_schema=ResourceInput.model_json_schema()))
+        return (
+            ConnectorCapability(
+                name="echo",
+                description="Echo safe text",
+                access_type=AccessType.READ,
+                input_schema=EchoInput.model_json_schema(),
+            ),
+            ConnectorCapability(
+                name="summarize_text_metadata",
+                description="Return text metadata",
+                access_type=AccessType.READ,
+                input_schema=EchoInput.model_json_schema(),
+            ),
+            ConnectorCapability(
+                name="project_status",
+                description="Read local project status",
+                access_type=AccessType.READ,
+                input_schema={},
+            ),
+            ConnectorCapability(
+                name="read_resource",
+                description="Read an allow-listed resource",
+                access_type=AccessType.READ,
+                input_schema=ResourceInput.model_json_schema(),
+            ),
+        )
 
     def input_model(self, operation: str) -> type[BaseModel]:
-        models = {"echo": EchoInput, "summarize_text_metadata": EchoInput, "project_status": EmptyInput, "read_resource": ResourceInput}
+        models = {
+            "echo": EchoInput,
+            "summarize_text_metadata": EchoInput,
+            "project_status": EmptyInput,
+            "read_resource": ResourceInput,
+        }
         if operation not in models:
             self._invalid(operation)
         return models[operation]
@@ -41,7 +71,9 @@ class MockMCPConnector(BaseConnector):
     async def health(self) -> bool:
         return True
 
-    async def execute(self, *, operation: str, input_data: BaseModel, context: ConnectorContext) -> dict[str, Any]:
+    async def execute(
+        self, *, operation: str, input_data: BaseModel, context: ConnectorContext
+    ) -> dict[str, Any]:
         if operation == "echo":
             return {"text": input_data.text}
         if operation == "summarize_text_metadata":
@@ -49,5 +81,11 @@ class MockMCPConnector(BaseConnector):
         if operation == "project_status":
             return {"project": "Enterprise AI Employee", "status": "local mock status available"}
         if operation == "read_resource":
-            return {"uri": input_data.uri, "content": {"workspace://projects": "Project Phoenix is active.", "workspace://policies": "Writes require explicit approval."}[input_data.uri]}
+            return {
+                "uri": input_data.uri,
+                "content": {
+                    "workspace://projects": "Project Phoenix is active.",
+                    "workspace://policies": "Writes require explicit approval.",
+                }[input_data.uri],
+            }
         raise ConnectorOperationError("MCP capability is not available")

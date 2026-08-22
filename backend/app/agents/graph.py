@@ -4,8 +4,8 @@ from langgraph.graph import END, START, StateGraph
 
 from app.agents.executor import ExecutionExecutor
 from app.agents.nodes.executor_node import executor_node
-from app.agents.nodes.llm_node import llm_node
 from app.agents.nodes.integration_node import integration_node
+from app.agents.nodes.llm_node import llm_node
 from app.agents.nodes.planner_node import planner_node
 from app.agents.nodes.router_node import router_node
 from app.agents.nodes.supervisor_node import supervisor_node

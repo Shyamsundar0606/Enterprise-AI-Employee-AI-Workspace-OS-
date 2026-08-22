@@ -6,5 +6,19 @@ from app.models.document import Document, DocumentChunk
 from app.models.integration_audit import IntegrationAuditEvent
 from app.models.message import Message
 from app.models.user import RefreshToken, User
+from app.models.workflow import ApprovalRequest, Workflow, WorkflowAuditEvent, WorkflowStep
 
-__all__ = ["Base", "Conversation", "Document", "DocumentChunk", "IntegrationAuditEvent", "Message", "RefreshToken", "User"]
+__all__ = [
+    "Base",
+    "Conversation",
+    "Document",
+    "DocumentChunk",
+    "IntegrationAuditEvent",
+    "Message",
+    "RefreshToken",
+    "User",
+    "ApprovalRequest",
+    "Workflow",
+    "WorkflowStep",
+    "WorkflowAuditEvent",
+]

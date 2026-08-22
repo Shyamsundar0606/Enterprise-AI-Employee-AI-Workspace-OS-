@@ -7,7 +7,9 @@ class ConnectorPolicy:
     """Read capabilities are automatic; consequential operations wait for approval."""
 
     @staticmethod
-    def authorize(*, capability: ConnectorCapability, role: str, allowed_roles: frozenset[str]) -> bool:
+    def authorize(
+        *, capability: ConnectorCapability, role: str, allowed_roles: frozenset[str]
+    ) -> bool:
         return role in allowed_roles
 
     @staticmethod

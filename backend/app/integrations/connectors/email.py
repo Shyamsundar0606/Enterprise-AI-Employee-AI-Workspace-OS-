@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Literal
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -29,19 +29,51 @@ class LocalEmailConnector(BaseConnector):
     id = "local_email"
     name = "Local Email"
     description = "Safe, deterministic enterprise mailbox data scoped to the authenticated user."
+    _drafts: dict[int, dict[str, dict[str, str]]] = {}
 
     @property
     def capabilities(self) -> tuple[ConnectorCapability, ...]:
         return (
-            ConnectorCapability(name="list_messages", description="List mailbox messages", access_type=AccessType.READ, input_schema={}),
-            ConnectorCapability(name="get_message", description="Read one mailbox message", access_type=AccessType.READ, input_schema=MessageInput.model_json_schema()),
-            ConnectorCapability(name="search_messages", description="Search mailbox messages", access_type=AccessType.READ, input_schema=SearchInput.model_json_schema()),
-            ConnectorCapability(name="create_draft", description="Prepare an email draft", access_type=AccessType.WRITE, input_schema=DraftInput.model_json_schema()),
-            ConnectorCapability(name="send_email", description="Send an external email", access_type=AccessType.WRITE, input_schema=DraftInput.model_json_schema()),
+            ConnectorCapability(
+                name="list_messages",
+                description="List mailbox messages",
+                access_type=AccessType.READ,
+                input_schema={},
+            ),
+            ConnectorCapability(
+                name="get_message",
+                description="Read one mailbox message",
+                access_type=AccessType.READ,
+                input_schema=MessageInput.model_json_schema(),
+            ),
+            ConnectorCapability(
+                name="search_messages",
+                description="Search mailbox messages",
+                access_type=AccessType.READ,
+                input_schema=SearchInput.model_json_schema(),
+            ),
+            ConnectorCapability(
+                name="create_draft",
+                description="Prepare an email draft",
+                access_type=AccessType.WRITE,
+                input_schema=DraftInput.model_json_schema(),
+            ),
+            ConnectorCapability(
+                name="send_email",
+                description="Send an external email",
+                access_type=AccessType.WRITE,
+                input_schema=DraftInput.model_json_schema(),
+            ),
         )
 
     def input_model(self, operation: str) -> type[BaseModel]:
-        models = {"list_messages": EmptyInput, "get_message": MessageInput, "search_messages": SearchInput, "create_draft": DraftInput, "send_email": DraftInput}
+        models = {
+            "list_messages": EmptyInput,
+            "get_message": MessageInput,
+            "search_messages": SearchInput,
+            "create_draft": DraftInput,
+            "send_email": DraftInput,
+        }
         if operation not in models:
             self._invalid(operation)
         return models[operation]
@@ -53,7 +85,9 @@ class LocalEmailConnector(BaseConnector):
     async def health(self) -> bool:
         return True
 
-    async def execute(self, *, operation: str, input_data: BaseModel, context: ConnectorContext) -> dict[str, Any]:
+    async def execute(
+        self, *, operation: str, input_data: BaseModel, context: ConnectorContext
+    ) -> dict[str, Any]:
         messages = self._messages(context.authenticated_user_id)
         if operation == "list_messages":
             return {"messages": [self._summary(item) for item in messages]}
@@ -64,7 +98,23 @@ class LocalEmailConnector(BaseConnector):
             return {"message": message}
         if operation == "search_messages":
             query = input_data.query.lower()
-            return {"messages": [self._summary(item) for item in messages if query in str(item).lower()]}
+            return {
+                "messages": [self._summary(item) for item in messages if query in str(item).lower()]
+            }
+        if operation == "create_draft":
+            draft_id = f"draft-{context.authenticated_user_id}-{context.metadata.get('idempotency_key', len(self._drafts.get(context.authenticated_user_id, {})) + 1)}"
+            drafts = self._drafts.setdefault(context.authenticated_user_id, {})
+            draft = drafts.setdefault(
+                draft_id,
+                {
+                    "status": "created",
+                    "draft_id": draft_id,
+                    "to": input_data.to,
+                    "subject": input_data.subject,
+                    "body": input_data.body,
+                },
+            )
+            return {"draft": draft}
         raise ConnectorOperationError("Operation cannot be executed automatically")
 
     @staticmethod
@@ -74,7 +124,25 @@ class LocalEmailConnector(BaseConnector):
     @staticmethod
     def _messages(user_id: int) -> list[dict[str, str]]:
         return [
-            {"id": "phoenix-budget", "subject": "Project Phoenix Update", "from": "finance@local.test", "received_at": "2026-08-17T09:00:00Z", "body": f"Budget approval for user {user_id}: approved contingency is 10% of the Project Phoenix budget."},
-            {"id": "security-review", "subject": "Security Review", "from": "security@local.test", "received_at": "2026-08-16T11:00:00Z", "body": f"Security review assigned to mailbox user {user_id}."},
-            {"id": "weekly-engineering", "subject": "Weekly Engineering Report", "from": "engineering@local.test", "received_at": "2026-08-15T15:00:00Z", "body": "Engineering delivery remains on schedule."},
+            {
+                "id": "phoenix-budget",
+                "subject": "Project Phoenix Update",
+                "from": "finance@local.test",
+                "received_at": "2026-08-17T09:00:00Z",
+                "body": f"Budget approval for user {user_id}: approved contingency is 10% of the Project Phoenix budget.",
+            },
+            {
+                "id": "security-review",
+                "subject": "Security Review",
+                "from": "security@local.test",
+                "received_at": "2026-08-16T11:00:00Z",
+                "body": f"Security review assigned to mailbox user {user_id}.",
+            },
+            {
+                "id": "weekly-engineering",
+                "subject": "Weekly Engineering Report",
+                "from": "engineering@local.test",
+                "received_at": "2026-08-15T15:00:00Z",
+                "body": "Engineering delivery remains on schedule.",
+            },
         ]

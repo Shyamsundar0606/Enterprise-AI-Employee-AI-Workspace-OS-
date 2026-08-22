@@ -11,13 +11,22 @@ _SENSITIVE = (
     "api_key",
     "secret",
     "client_secret",
+    "system_prompt",
+    "chain_of_thought",
+    "hidden_reasoning",
 )
 
 
 def redact(value: Any) -> Any:
     if isinstance(value, dict):
         return {
-            key: "[REDACTED]" if any(word in key.lower() for word in _SENSITIVE) else redact(item)
+            key: (
+                "[REDACTED]"
+                if any(
+                    word in key.lower().replace("-", "_").replace(" ", "_") for word in _SENSITIVE
+                )
+                else redact(item)
+            )
             for key, item in value.items()
         }
     if isinstance(value, list):

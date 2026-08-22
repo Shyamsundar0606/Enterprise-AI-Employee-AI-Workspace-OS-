@@ -25,3 +25,9 @@ The supervisor is a LangGraph node ahead of the existing planner, tool router, e
 `app/integrations` remains distinct from the Milestone 7 utility-tool layer. `ConnectorRegistry` owns a static allow-list; `ConnectorExecutor` validates a capability and its Pydantic input, uses a backend-created `ConnectorContext`, applies role and read/write/destructive policy, redacts data, bounds results, and records `IntegrationAuditEvent`. The local Email, Calendar, Workspace, GitHub-style, and MCP adapters have no external credential or network dependency.
 
 MCP descriptions, output, and metadata are untrusted data: they cannot alter identity, invoke another connector, or change policy. Connector writes and destructive operations terminate at `approval_required`. Future OAuth adapters must store only a secret reference, never plaintext credentials in configuration, audit records, memory, or prompts.
+
+## Autonomous workflow boundary
+
+`app/workflows` owns persisted workflow state, validation, dependency checks, bounded retries, approval gating, and execution. `WorkflowService` scopes every lookup to the JWT-derived owner. `WorkflowExecutor` invokes only the existing connector, tool, and knowledge boundaries; it never evaluates arbitrary code or executes raw SQL, shell, Python, or HTTP requests.
+
+Approval requests store a redacted action snapshot and deterministic action hash. `ApprovalService` locks a pending approval before deciding it, then creates an internal `ApprovedActionContext`. `ConnectorExecutor` independently checks the persisted decision, owner, workflow, step, action hash, and running state. Lifecycle events are persisted separately as redacted `WorkflowAuditEvent` rows and exposed through an owner-scoped SSE feed.

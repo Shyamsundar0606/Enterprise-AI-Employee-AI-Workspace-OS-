@@ -2,7 +2,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Literal
 
-from pydantic import AnyUrl, RedisDsn
+from pydantic import AnyUrl, RedisDsn, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -13,6 +13,8 @@ class Settings(BaseSettings):
     app_name: str = "Enterprise AI Employee API"
     app_env: Literal["development", "test", "staging", "production"] = "development"
     log_level: str = "INFO"
+    cors_origins: str = "http://localhost:3000"
+    trusted_proxy_count: int = 0
     api_v1_prefix: str = "/api/v1"
     database_url: AnyUrl = "sqlite+aiosqlite:///./app.db"
     redis_url: RedisDsn = "redis://localhost:6379/0"
@@ -55,6 +57,35 @@ class Settings(BaseSettings):
     connector_max_result_size: int = 50_000
     workspace_connector_path: Path = Path("/app/data/workspace")
     connector_audit_enabled: bool = True
+    workflow_max_retries: int = 2
+    rate_limit_requests_per_minute: int = 60
+    rate_limit_auth_per_minute: int = 10
+    request_max_bytes: int = 1_000_000
+
+    @field_validator("log_level")
+    @classmethod
+    def validate_log_level(cls, value: str) -> str:
+        normalized = value.upper()
+        if normalized not in {"DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"}:
+            raise ValueError("LOG_LEVEL is invalid")
+        return normalized
+
+    @property
+    def allowed_origins(self) -> list[str]:
+        return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
+
+    @model_validator(mode="after")
+    def validate_production_configuration(self) -> "Settings":
+        if self.app_env == "production":
+            if self.jwt_secret_key == "change-me-in-production" or len(self.jwt_secret_key) < 32:
+                raise ValueError("JWT_SECRET_KEY must be a strong production secret")
+            if not self.allowed_origins or "*" in self.allowed_origins:
+                raise ValueError("CORS_ORIGINS must contain explicit production origins")
+            if self.database_url.scheme.startswith("sqlite"):
+                raise ValueError("DATABASE_URL must use PostgreSQL in production")
+        if self.request_max_bytes < 1_024:
+            raise ValueError("REQUEST_MAX_BYTES is too small")
+        return self
 
 
 @lru_cache
